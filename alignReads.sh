@@ -16,3 +16,41 @@
   --outFilterMatchNmin 0 
   --alignEndsType EndToEnd 
   --readFilesIn trimmed_reads_R1_1_val_1.fq trimmed_reads_R2_1_val_2.fq
+
+# Convert SAM to sorted BAM file
+samtools view -@ 78 -b Aligned.out.sam > Aligned.out.bam 
+samtools sort -@ 78 Aligned.out.bam > Aligned.out.sorted.bam
+samtools index -@ 78 Aligned.out.sorted.bam 
+
+# Convert sorted BAM to BigWig and bedGraph
+~/.local/bin/bamCoverage 
+  --normalizeUsing RPKM 
+  --numberOfProcessors max 
+  --bam Aligned.out.sorted.bam 
+  --outFileFormat bigwig 
+  --outFileName Aligned.out.bigwig
+
+~/.local/bin/bamCoverage 
+  --normalizeUsing RPKM 
+  --numberOfProcessors max 
+  --bam Aligned.out.sorted.bam 
+  --outFileFormat bedgraph 
+  --outFileName Aligned.out.bigwig
+
+# QC of alignment
+export PATH=$PATH:/media/Data/RNAseq/qualimap_v2.2.1/
+qualimap rnaseq 
+  --java-mem-size=2400M 
+  -bam Aligned.out.bam 
+  -gtf /media/Data/RNAseq/Mouse/mm10/m6A/Mus_musculus.GRCm38.102.gtf 
+  -outdir ./ 
+  -p non-strand-specific 
+  -pe
+
+# RNA-SeQC
+rna-seqc 
+  -t /media/Data/RNAseq/Mouse/mm10/m6A/Mus_musculus.GRCm39.106.gtf Aligned.out.bam 
+  -r /media/Data/RNAseq/Mouse/mm10/m6A/Mus_musculus.GRCm38.fasta 
+  -o ./ 
+  -s s.txt 
+  -singleEnd no
